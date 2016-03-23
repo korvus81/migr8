@@ -118,7 +118,9 @@ func sourceConnection(source string, auth string) redis.Conn {
 		panic(err)
 	}
 	if auth != "" {
-		sourceConn.Do("AUTH",auth)
+		if _, err := sourceConn.Do("AUTH",auth); err != nil {
+			panic(err)
+		}
 	}
 	return sourceConn
 }
