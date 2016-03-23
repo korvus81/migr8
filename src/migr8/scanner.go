@@ -16,14 +16,16 @@ func keyProcessed() {
 	// there is no mutex here, but I don't care as this is just information and does not need
 	// to be accurate
 	keysProcessed += 1
-	var duration time.Duration = time.Now().Sub(startedAt)
-	kps := float64(keysProcessed) / float64(duration.Seconds())
-	log.Printf("\r%v keys processd in %v KPS", keysProcessed, kps)
+	if keysProcessed % 10000 == 0 {
+		var duration time.Duration = time.Now().Sub(startedAt)
+		kps := float64(keysProcessed) / float64(duration.Seconds())
+		log.Printf("\r%v keys processd in %v KPS", keysProcessed, kps)
+	}
 }
 
 func scanKeys(queue chan Task, wg *sync.WaitGroup) {
 	cursor := 0
-	conn := sourceConnection(config.Source)
+	conn := sourceConnection(config.Source, config.SourcePass)
 
 	key_search := fmt.Sprintf("%s*", config.Prefix)
 	log.Println("Starting Scan with keys", key_search)

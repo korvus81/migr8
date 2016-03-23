@@ -7,6 +7,8 @@ import (
 
 	"github.com/garyburd/redigo/redis"
 )
+import rediscluster "github.com/korvus81/redis-go-cluster"
+
 
 func dumpKeyAndTTL(key string, sourceConn redis.Conn) (string, int64, error) {
 	var err error
@@ -24,7 +26,7 @@ func dumpKeyAndTTL(key string, sourceConn redis.Conn) (string, int64, error) {
 	return dumpedKey, ttl, err
 }
 
-func dumpAndRestore(sourceConn redis.Conn, destConn redis.Conn, key string) {
+func dumpAndRestore(sourceConn redis.Conn, destConn *rediscluster.Cluster, key string) {
 	dumpedKey, dumpedKeyTTL, err := dumpKeyAndTTL(key, sourceConn)
 
 	if err != nil {
@@ -53,8 +55,8 @@ func dumpAndRestore(sourceConn redis.Conn, destConn redis.Conn, key string) {
 }
 
 func migrateKeys(queue chan Task, wg *sync.WaitGroup) {
-	sourceConn := sourceConnection(config.Source)
-	destConn := destConnection(config.Dest)
+	sourceConn := sourceConnection(config.Source, config.SourcePass)
+	destConn := destConnection(config.Dest, config.DestPass)
 
 	for task := range queue {
 		for _, key := range task.list {
@@ -76,10 +78,10 @@ func shouldClearAllKeys(dest string) bool {
 	return false
 }
 
-func clearDestination(dest string) {
+func clearDestination(dest string, auth string) {
 	if shouldClearAllKeys(dest) {
 		log.Println("Deleting all keys of destination")
-		destConn := destConnection(dest)
+		destConn := destConnection(dest, auth)
 
 		if _, err := destConn.Do("flushall"); err != nil {
 			log.Printf("error in flushing: %s\n", err)

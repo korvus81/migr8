@@ -5,10 +5,13 @@ import (
 	"os"
 	"sync"
 	"time"
+	"strings"
 
 	"github.com/codegangsta/cli"
 	"github.com/garyburd/redigo/redis"
+
 )
+import rediscluster "github.com/korvus81/redis-go-cluster"
 
 type Task struct {
 	list []string
@@ -17,13 +20,15 @@ type Task struct {
 type Worker func(queue chan Task, wg *sync.WaitGroup)
 
 type Config struct {
-	Dest      string
-	Source    string
-	Workers   int
-	Batch     int
-	Prefix    string
-	ClearDest bool
-	DryRun    bool
+	Dest       string
+	Source     string
+	DestPass   string
+	SourcePass string
+	Workers    int
+	Batch      int
+	Prefix     string
+	ClearDest  bool
+	DryRun     bool
 }
 
 var config Config
@@ -59,6 +64,16 @@ func main() {
 			Usage: "The destination redis server",
 			Value: "127.0.0.1:6379",
 		},
+		cli.StringFlag{
+			Name: "destpass",
+			Usage: "The password for the destination redis server",
+			Value: "",
+		},
+		cli.StringFlag{
+			Name: "sourcepass",
+			Usage: "The password for the source redis server",
+			Value: "",
+		},
 		cli.IntFlag{
 			Name:  "workers, w",
 			Usage: "The count of workers to spin up",
@@ -85,7 +100,9 @@ func main() {
 func ParseConfig(c *cli.Context) {
 	config = Config{
 		Source:    c.GlobalString("source"),
+		SourcePass:c.GlobalString("sourcepass"),
 		Dest:      c.GlobalString("dest"),
+		DestPass:  c.GlobalString("destpass"),
 		Workers:   c.GlobalInt("workers"),
 		Batch:     c.GlobalInt("batch"),
 		Prefix:    c.GlobalString("prefix"),
@@ -94,23 +111,39 @@ func ParseConfig(c *cli.Context) {
 	}
 }
 
-func sourceConnection(source string) redis.Conn {
+func sourceConnection(source string, auth string) redis.Conn {
 	// attempt to connect to source server
 	sourceConn, err := redis.Dial("tcp", source)
 	if err != nil {
 		panic(err)
 	}
-
+	if auth != "" {
+		sourceConn.Do("AUTH",auth)
+	}
 	return sourceConn
 }
 
-func destConnection(dest string) redis.Conn {
+func destConnection(dest string, auth string) *rediscluster.Cluster {
 	// attempt to connect to source server
-	destConn, err := redis.Dial("tcp", dest)
+	/*destConn, err := redis.Dial("tcp", dest)
 	if err != nil {
 		panic(err)
 	}
 
+	return destConn*/
+	destConn, err := rediscluster.NewCluster(
+		&rediscluster.Options{
+			StartNodes: strings.Split(dest,","),//[]string{dest},
+			Password: auth,
+			ConnTimeout: 5000 * time.Millisecond,
+			ReadTimeout: 100 * time.Millisecond,
+			WriteTimeout: 100 * time.Millisecond,
+			KeepAlive: 16,
+			AliveTime: 60 * time.Second,
+		})
+	if err != nil {
+		panic(err)
+	}
 	return destConn
 }
 
@@ -136,7 +169,7 @@ func Migrate(c *cli.Context) {
 	log.SetPrefix("migrate - ")
 
 	if config.ClearDest {
-		clearDestination(c.String("dest"))
+		clearDestination(c.String("dest"), c.String("destpass"))
 	}
 
 	RunAction(migrateKeys)

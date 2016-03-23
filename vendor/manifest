@@ -20,6 +20,12 @@
 			"revision": "6ece6e0a09f28cc399b21550cbf37ab39ba63cce",
 			"branch": "master",
 			"path": "/redis"
+		},
+		{
+			"importpath": "github.com/korvus81/redis-go-cluster",
+			"repository": "https://github.com/korvus81/redis-go-cluster",
+			"revision": "1932874a4f49d8be417f14902fbbb22dda99fe01",
+			"branch": "master"
 		}
 	]
 }

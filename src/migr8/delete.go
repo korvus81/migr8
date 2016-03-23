@@ -8,7 +8,7 @@ import (
 )
 
 func deleteKeys(queue chan Task, wg *sync.WaitGroup) {
-	sourceConn := sourceConnection(config.Source)
+	sourceConn := sourceConnection(config.Source, config.SourcePass)
 	for task := range queue {
 		for _, key := range task.list {
 			if config.DryRun {
