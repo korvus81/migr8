@@ -55,7 +55,7 @@ func dumpAndRestore(sourceConn redis.Conn, destConn *rediscluster.Cluster, key s
 }
 
 func migrateKeys(queue chan Task, wg *sync.WaitGroup) {
-	sourceConn := sourceConnection(config.Source, config.SourcePass)
+	sourceConn := sourceConnection(config.Source, config.SourcePass, config.SourceDb)
 	destConn := destConnection(config.Dest, config.DestPass)
 
 	for task := range queue {

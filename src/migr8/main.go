@@ -24,6 +24,7 @@ type Config struct {
 	Source     string
 	DestPass   string
 	SourcePass string
+	SourceDb   int
 	Workers    int
 	Batch      int
 	Prefix     string
@@ -75,6 +76,11 @@ func main() {
 			Value: "",
 		},
 		cli.IntFlag{
+			Name:  "sourcedb",
+			Usage: "The source database to use (0,1,etc)",
+			Value: 0,
+		},
+		cli.IntFlag{
 			Name:  "workers, w",
 			Usage: "The count of workers to spin up",
 			Value: 2,
@@ -101,6 +107,7 @@ func ParseConfig(c *cli.Context) {
 	config = Config{
 		Source:    c.GlobalString("source"),
 		SourcePass:c.GlobalString("sourcepass"),
+		SourceDb:  c.GlobalInt("sourcedb"),
 		Dest:      c.GlobalString("dest"),
 		DestPass:  c.GlobalString("destpass"),
 		Workers:   c.GlobalInt("workers"),
@@ -111,7 +118,7 @@ func ParseConfig(c *cli.Context) {
 	}
 }
 
-func sourceConnection(source string, auth string) redis.Conn {
+func sourceConnection(source string, auth string, sourcedb int) redis.Conn {
 	// attempt to connect to source server
 	sourceConn, err := redis.Dial("tcp", source)
 	if err != nil {
@@ -119,6 +126,11 @@ func sourceConnection(source string, auth string) redis.Conn {
 	}
 	if auth != "" {
 		if _, err := sourceConn.Do("AUTH",auth); err != nil {
+			panic(err)
+		}
+	}
+	if sourcedb != 0 {
+		if _, err := sourceConn.Do("SELECT",sourcedb); err != nil {
 			panic(err)
 		}
 	}

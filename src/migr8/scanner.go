@@ -25,7 +25,7 @@ func keyProcessed() {
 
 func scanKeys(queue chan Task, wg *sync.WaitGroup) {
 	cursor := 0
-	conn := sourceConnection(config.Source, config.SourcePass)
+	conn := sourceConnection(config.Source, config.SourcePass, config.SourceDb)
 
 	key_search := fmt.Sprintf("%s*", config.Prefix)
 	log.Println("Starting Scan with keys", key_search)
